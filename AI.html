@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CertiCheck: Certificate Authenticity Checker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#f6f5f1;--surface:#fff;--ink:#1d2433;--muted:#5d6678;--line:#d9d9d2;--accent:#1f4fd8;--ok:#15803d;--okbg:#e4f4ea;--bad:#b42318;--badbg:#fde8e6;--warn:#8a5a00;--warnbg:#fff1d6;--idle:#475066;--idlebg:#e8eaf0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12151d;--surface:#1b202b;--ink:#e9ecf3;--muted:#9aa3b5;--line:#2e3545;--accent:#7ea0ff;--ok:#6fd49a;--okbg:#14301f;--bad:#ff8f84;--badbg:#3a1815;--warn:#f3c262;--warnbg:#38290a;--idle:#b7bfd0;--idlebg:#272d3b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12151d;--surface:#1b202b;--ink:#e9ecf3;--muted:#9aa3b5;--line:#2e3545;--accent:#7ea0ff;--ok:#6fd49a;--okbg:#14301f;--bad:#ff8f84;--badbg:#3a1815;--warn:#f3c262;--warnbg:#38290a;--idle:#b7bfd0;--idlebg:#272d3b;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Figtree,system-ui,sans-serif}
+main{max-width:1060px;margin:0 auto;padding:28px 18px 60px}
+h1,h2,h3{font-family:"Bricolage Grotesque",Figtree,system-ui,sans-serif;line-height:1.15;margin:0}
+h1{font-size:clamp(1.9rem,5vw,2.8rem);letter-spacing:-.02em}
+h2{font-size:1.25rem;margin-bottom:12px}
+.lede{color:var(--muted);max-width:62ch;margin:10px 0 26px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 4px}
+input[type=text],input[type=date],select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.check{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:.92rem}
+.check input{margin-top:4px;width:18px;height:18px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+button{font:inherit;font-weight:600;padding:9px 16px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.primary{color:#0b1020}}
+button.ghost{background:transparent;color:var(--accent)}
+button.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:.95rem}
+.steps li:last-child{border:0}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--line);transform:translateY(1px)}
+.s-done .dot{background:var(--ok)}.s-run .dot{background:var(--accent)}.s-stop .dot{background:var(--bad)}.s-wait .dot{background:var(--warn)}
+.steps small{color:var(--muted);display:block}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-weight:700;font-size:.82rem}
+.b-VERIFIED{background:var(--okbg);color:var(--ok)}.b-MISMATCH{background:var(--badbg);color:var(--bad)}
+.b-NOT_FOUND{background:var(--warnbg);color:var(--warn)}.b-BLOCKED{background:var(--idlebg);color:var(--idle)}.b-REJECTED{background:var(--idlebg);color:var(--idle)}
+.approve{border:2px solid var(--warn);background:var(--warnbg);border-radius:8px;padding:14px;margin:12px 0}
+.approve dl{margin:8px 0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px}
+.approve dt{color:var(--muted)}.approve dd{margin:0;word-break:break-all}
+.snap{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:12px;background:#fff;color:#1d2433}
+.snap-bar{background:#e8eaf0;color:#475066;font-size:.78rem;padding:6px 10px;word-break:break-all}
+.snap-body{padding:14px;font-size:.92rem}
+.snap-body b{display:inline-block;min-width:70px}
+.cmp{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:12px}
+.cmp th,.cmp td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.ok{color:var(--ok);font-weight:600}.no{color:var(--bad);font-weight:600}
+.scroll{overflow-x:auto}
+table.res{width:100%;border-collapse:collapse;font-size:.88rem;min-width:640px}
+table.res th,table.res td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+pre.log{margin:0;max-height:220px;overflow:auto;font:12px/1.5 ui-monospace,Menlo,monospace;background:var(--bg);padding:10px;border-radius:6px;white-space:pre-wrap}
+.note{font-size:.85rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<h1>CertiCheck</h1>
+<p class="lede">A certificate checking agent for recruiters. It confirms candidate consent, asks a person to approve the lookup, reads the issuer’s verification page, and compares what it finds with the candidate’s claim. A missing record is reported as “not found”, never as “fake”.</p>
+
+<div class="grid">
+<div>
+<section class="panel">
+<h2>Credential to check</h2>
+<form id="f" onsubmit="return false">
+<label for="cid">Credential ID</label><input type="text" id="cid" value="CERT-1001" autocomplete="off">
+<label for="iss">Issuer</label>
+<select id="iss"><option>MockLearn Academy</option></select>
+<label for="nm">Candidate name (as claimed)</label><input type="text" id="nm" value="Priya Sharma" autocomplete="off">
+<label for="co">Course (as claimed)</label><input type="text" id="co" value="Machine Learning Foundations" autocomplete="off">
+<label for="dt">Issue date (as claimed)</label><input type="date" id="dt" value="2026-03-14">
+<div class="check"><input type="checkbox" id="cons" checked><label for="cons" style="margin:0;font-weight:500">The candidate has given consent for this credential to be verified.</label></div>
+<div class="row"><button type="button" class="primary" id="go">Start check</button><button type="button" class="ghost" id="runall">Run all 4 test cases</button></div>
+<p class="note">Data here is synthetic. The mock issuer holds two records: CERT-1001 and CERT-1002.</p>
+</form>
+</section>
+<section class="panel"><h2>Agent log</h2><pre class="log" id="log">Waiting for a check to start.</pre></section>
+</div>
+
+<div>
+<section class="panel">
+<h2>Agent progress</h2>
+<ul class="steps" id="steps"></ul>
+<div id="approval"></div>
+<div id="outcome"></div>
+</section>
+</div>
+</div>
+
+<section class="panel">
+<h2>Results</h2>
+<div class="scroll"><table class="res"><thead><tr><th>Run</th><th>Input</th><th>Expected</th><th>Actual</th><th>Evidence</th></tr></thead>
+<tbody id="rows"><tr><td colspan="5" class="note">No runs yet.</td></tr></tbody></table></div>
+<p class="note" id="summary"></p>
+</section>
+
+<section class="panel">
+<h2>How it works</h2>
+<p class="note" style="font-size:.95rem">Pipeline: intake and validation, consent gate, planner, human approval, retriever, verifier, result store. Each result keeps the source URL, retrieval time, the page snapshot, extracted values and the reason for the decision. Repeat requests for the same approved check reuse the stored result instead of running a second lookup. The retriever reads a mock issuer registry that stands in for a public course platform page; it never touches OTP or CAPTCHA steps.</p>
+</section>
+</main>
+
+<script>
+(function(){
+var ISSUER={name:"MockLearn Academy",base:"https://verify.mocklearn.example/c/"};
+var REGISTRY={
+ "CERT-1001":{name:"Priya Sharma",course:"Machine Learning Foundations",date:"2026-03-14"},
+ "CERT-1002":{name:"Rahul Verma",course:"Data Analysis with Python",date:"2026-01-20"}
+};
+var TESTS=[
+ {id:"TC1",label:"Valid ID, matching name",expected:"VERIFIED",input:{cid:"CERT-1001",nm:"Priya Sharma",co:"Machine Learning Foundations",dt:"2026-03-14",consent:true}},
+ {id:"TC2",label:"ID returns a different name",expected:"MISMATCH",input:{cid:"CERT-1002",nm:"Rohan Verma",co:"Data Analysis with Python",dt:"2026-01-20",consent:true}},
+ {id:"TC3",label:"No record found",expected:"NOT_FOUND",input:{cid:"CERT-9999",nm:"Anita Rao",co:"Cloud Basics",dt:"2026-02-02",consent:true}},
+ {id:"TC4",label:"No candidate consent on file",expected:"BLOCKED",input:{cid:"CERT-1001",nm:"Priya Sharma",co:"Machine Learning Foundations",dt:"2026-03-14",consent:false}}
+];
+var STEPS=["Intake and validation","Consent gate","Planner","Human approval","Retriever","Verifier","Result store"];
+var $=function(i){return document.getElementById(i)};
+var results=[],cache={},runCount=0,busy=false,pendingApproval=null;
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function ts(){return new Date().toISOString()}
+function norm(s){return String(s).toLowerCase().replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(Boolean).sort().join(" ")}
+function log(m){var l=$("log");if(l.dataset.fresh!=="1"){l.textContent="";l.dataset.fresh="1"}l.textContent+=ts().slice(11,19)+"  "+m+"\n";l.scrollTop=l.scrollHeight}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+
+function renderSteps(state){
+ $("steps").innerHTML=STEPS.map(function(n,i){var s=state[i]||{};return '<li class="'+(s.c||"")+'"><span class="dot"></span><span>'+esc(n)+(s.t?'<small>'+esc(s.t)+'</small>':'')+'</span></li>'}).join("");
+}
+function badge(d){return '<span class="badge b-'+d+'">'+d.replace("_"," ")+'</span>'}
+
+function validate(i){
+ var e=[];
+ if(!/^[A-Z]{2,6}-\d{3,8}$/.test(i.cid))e.push("Credential ID must look like CERT-1001.");
+ if(i.nm.trim().length<2)e.push("Enter the candidate’s name.");
+ if(i.co.trim().length<2)e.push("Enter the course name.");
+ if(!i.dt)e.push("Enter the issue date.");
+ return e;
+}
+
+function retrieve(cid){
+ var url=ISSUER.base+encodeURIComponent(cid),rec=REGISTRY[cid]||null;
+ return {url:url,at:ts(),record:rec,page:rec?"Record found":"No record found for this ID"};
+}
+function snapshotHtml(r){
+ var b=r.record?'<div><b>Name</b>'+esc(r.record.name)+'</div><div><b>Course</b>'+esc(r.record.course)+'</div><div><b>Issued</b>'+esc(r.record.date)+'</div><div><b>Status</b>Valid certificate</div>':'<div><b>Status</b>No certificate matches this ID.</div>';
+ return '<div class="snap"><div class="snap-bar">'+esc(r.url)+' · retrieved '+esc(r.at)+'</div><div class="snap-body"><strong>'+esc(ISSUER.name)+' · Certificate verification</strong><div style="margin-top:8px">'+b+'</div></div></div>';
+}
+function compare(i,rec){
+ if(!rec)return {decision:"NOT_FOUND",rows:[],reason:"The issuer page returned no record for this ID. That does not show the certificate is fake; the ID may be mistyped or issued elsewhere."};
+ var rows=[["Name",i.nm,rec.name,norm(i.nm)===norm(rec.name)],["Course",i.co,rec.course,norm(i.co)===norm(rec.course)],["Date",i.dt,rec.date,i.dt===rec.date]];
+ var bad=rows.filter(function(r){return!r[3]}).map(function(r){return r[0].toLowerCase()});
+ return bad.length?{decision:"MISMATCH",rows:rows,reason:"Issuer record differs from the claim on: "+bad.join(", ")+"."}:{decision:"VERIFIED",rows:rows,reason:"Name, course and date all match the issuer record."};
+}
+function outcomeHtml(res){
+ var h='<h3 style="margin-top:14px">Outcome '+badge(res.decision)+'</h3><p>'+esc(res.reason)+'</p>';
+ if(res.rows&&res.rows.length)h+='<table class="cmp"><thead><tr><th>Field</th><th>Claimed</th><th>Issuer record</th><th></th></tr></thead><tbody>'+res.rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td class="'+(r[3]?"ok":"no")+'">'+(r[3]?"match":"differs")+'</td></tr>'}).join("")+'</tbody></table>';
+ if(res.snapshot)h+=res.snapshot;
+ return h;
+}
+function approvalWait(payload){
+ return new Promise(function(resolve){
+  $("approval").innerHTML='<div class="approve"><strong>Approval needed before the lookup</strong><dl><dt>Open</dt><dd>'+esc(payload.url)+'</dd><dt>Enter ID</dt><dd>'+esc(payload.cid)+'</dd><dt>Capture</dt><dd>Page snapshot, name, course, date</dd></dl><div class="row" style="margin-top:8px"><button type="button" class="primary" id="ap">Approve lookup</button><button type="button" class="danger" id="rj">Reject</button></div></div>';
+  pendingApproval=resolve;
+  $("ap").onclick=function(){$("approval").innerHTML="";pendingApproval=null;resolve(true)};
+  $("rj").onclick=function(){$("approval").innerHTML="";pendingApproval=null;resolve(false)};
+  $("ap").focus();
+ });
+}
+
+async function run(input,opts){
+ opts=opts||{};
+ var st=[],id="RUN-"+(++runCount),res={run:id,input:input,decision:null,reason:"",evidence:"",expected:opts.expected||"",tc:opts.tc||""};
+ $("outcome").innerHTML="";$("approval").innerHTML="";
+ log("— "+id+(opts.tc?" ("+opts.tc+")":"")+" started for "+input.cid);
+ function set(i,c,t){st[i]={c:c,t:t};renderSteps(st)}
+ set(0,"s-run","Checking fields");await sleep(250);
+ var errs=validate(input);
+ if(errs.length){set(0,"s-stop",errs.join(" "));res.decision="BLOCKED";res.reason=errs.join(" ");res.evidence="Validation failed; no lookup run";log("Validation failed: "+errs.join(" "));return finish(res)}
+ set(0,"s-done","Fields are valid");
+ set(1,"s-run","Checking consent");await sleep(250);
+ if(!input.consent){set(1,"s-stop","No consent on file. Lookup not run.");res.decision="BLOCKED";res.reason="No candidate consent on file, so the issuer lookup was not run.";res.evidence="Consent gate stopped the run before any request";log("Consent gate: BLOCKED. No request was made.");return finish(res)}
+ set(1,"s-done","Consent confirmed");
+ set(2,"s-run","Planning");await sleep(250);
+ var url=ISSUER.base+encodeURIComponent(input.cid);
+ set(2,"s-done","Will check name, course and date at "+ISSUER.name);log("Plan: open "+url+", compare name, course, date.");
+ var key=[input.cid,input.nm,input.co,input.dt].map(norm).join("|");
+ if(cache[key]){set(3,"s-done","Already approved earlier");set(4,"s-done","Skipped: reused stored result");set(5,"s-done","Reused");set(6,"s-done","Duplicate lookup prevented");log("Idempotency: reused stored result, no second lookup.");var c=Object.assign({},cache[key],{run:id,expected:res.expected,tc:res.tc,evidence:"Reused stored result (duplicate lookup prevented)"});return finish(c,true)}
+ set(3,"s-wait","Waiting for a person to approve");log("Waiting for human approval.");
+ var ok=opts.autoApprove?(await sleep(300),true):await approvalWait({url:url,cid:input.cid});
+ if(!ok){set(3,"s-stop","Rejected by reviewer");res.decision="REJECTED";res.reason="Reviewer rejected the lookup.";res.evidence="No request made";log("Reviewer rejected. No request made.");return finish(res)}
+ set(3,"s-done",opts.autoApprove?"Approved by test harness (simulated)":"Approved by reviewer");log(opts.autoApprove?"Approval simulated by test harness.":"Reviewer approved.");
+ set(4,"s-run","Opening verification page");await sleep(500);
+ var r=retrieve(input.cid);set(4,"s-done",r.page);log("Retrieved "+r.url+" → "+r.page);
+ set(5,"s-run","Comparing");await sleep(300);
+ var v=compare(input,r.record);set(5,"s-done",v.decision);log("Decision: "+v.decision+". "+v.reason);
+ res.decision=v.decision;res.reason=v.reason;res.rows=v.rows;res.snapshot=snapshotHtml(r);
+ res.evidence="Snapshot of "+r.url+" at "+r.at+(r.record?"; extracted "+r.record.name+" / "+r.record.course+" / "+r.record.date:"; no record on page");
+ set(6,"s-done","Saved with source URL and time");
+ cache[key]={decision:res.decision,reason:res.reason,rows:res.rows,snapshot:res.snapshot,input:input};
+ return finish(res);
+}
+function finish(res,reused){
+ $("outcome").innerHTML=outcomeHtml(res);
+ results.push(res);renderRows();return res;
+}
+function renderRows(){
+ var rows=results.map(function(r){
+  var i=r.input,pass=r.expected?(r.expected===r.decision):null;
+  return '<tr><td>'+esc(r.tc||r.run)+'</td><td>'+esc(i.cid)+', '+esc(i.nm)+', consent '+(i.consent?"yes":"no")+'</td><td>'+(r.expected?badge(r.expected):"—")+'</td><td>'+badge(r.decision)+(pass===null?"":(pass?' <span class="ok">as expected</span>':' <span class="no">differs</span>'))+'<br><span class="note">'+esc(r.reason)+'</span></td><td class="note">'+esc(r.evidence)+'</td></tr>';
+ });
+ $("rows").innerHTML=rows.join("")||'<tr><td colspan="5" class="note">No runs yet.</td></tr>';
+ var t=results.filter(function(r){return r.tc});
+ $("summary").textContent=t.length?(t.filter(function(r){return r.expected===r.decision}).length+" of "+t.length+" test cases matched the expected result."):"";
+}
+function readForm(){return {cid:$("cid").value.trim().toUpperCase(),nm:$("nm").value,co:$("co").value,dt:$("dt").value,consent:$("cons").checked}}
+function setBusy(b){busy=b;$("go").disabled=b;$("runall").disabled=b}
+$("go").onclick=async function(){if(busy)return;setBusy(true);try{await run(readForm())}finally{setBusy(false)}};
+$("runall").onclick=async function(){
+ if(busy)return;setBusy(true);cache={};
+ try{for(var i=0;i<TESTS.length;i++){var t=TESTS[i];await run(t.input,{tc:t.id,expected:t.expected,autoApprove:true});await sleep(400)}}finally{setBusy(false)}
+};
+renderSteps([]);
+})();
+</script>
+</body>
+</html>
